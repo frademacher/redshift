@@ -192,7 +192,8 @@ class RedshiftStatusIcon(object):
                 configuration.determine_configuration_file_path(sys.argv)
             if config_file_path:
                 configuration.parse_configuration(config_file_path)
-                return configuration.use_appindicator_icon()
+
+            return configuration.use_appindicator_icon()
         except Exception as ex:
             error_dialog = Gtk.MessageDialog(
                 None, Gtk.DialogFlags.MODAL, Gtk.MessageType.ERROR,

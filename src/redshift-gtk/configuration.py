@@ -84,6 +84,13 @@ class RedshiftConfiguration(object):
         'off' : False
     }
 
+    # Default values for options not treated by Redshift itself
+    _DEFAULT_VALUES = {
+        'redshift-gtk' : {
+            'use-appindicator-icon': '1'
+        }
+    }
+
     def determine_configuration_file_path(self, args=[]):
         """Determine path of configuration file or None, if no file could be.
         
@@ -167,16 +174,18 @@ class RedshiftConfiguration(object):
         """Convenience method to return value of option "use-appindicator-icon"
         in section "redshift-gtk" as Boolean.
         """
-        if not self._is_parsed_configuration:
-            raise ValueError('Configuration file as not been parsed yet.')
+        default_value = \
+            self._DEFAULT_VALUES['redshift-gtk']['use-appindicator-icon']
+
+        if not self._is_parsed_configuration():
+            return self._BOOLEAN_LIKE_OPTION_VALUE_MAPPING[default_value]
 
         if not self._is_valid_configuration():
             raise ValueError('Parsed configuration is invalid.')
 
-        option_value = \
-            self._use_appindicator_icon_raw_value(self._parsed_configuration)
-        if option_value:
-            return self._BOOLEAN_LIKE_OPTION_VALUE_MAPPING[option_value]
+        option_value = self._parsed_configuration.get('redshift-gtk', 
+            'use-appindicator-icon', fallback=default_value)
+        return self._BOOLEAN_LIKE_OPTION_VALUE_MAPPING[option_value]
 
     def _is_parsed_configuration(self):
         """Helper to determine if this object represents a parsed 
@@ -212,8 +221,19 @@ class RedshiftConfiguration(object):
         except NoSectionError:
             raise KeyError(section)
 
-        return {option_name : option_value 
-                for option_name, option_value in section_options}
+        options = {option_name : option_value 
+            for option_name, option_value in section_options}
+
+        # Add missing default values
+        missing_default_values = {}
+        if section in self._DEFAULT_VALUES:
+            default_values_for_section = self._DEFAULT_VALUES[section]
+            missing_default_values = set(default_values_for_section) - options
+
+        for option_name, default_value in missing_default_values:
+            options[option_name] = default_value
+
+        return options
 
     def _get_configuration_options_tuple(self, sections, parsed_configuration):
         """Get configuration options as dictionary (key: section name, value: 
